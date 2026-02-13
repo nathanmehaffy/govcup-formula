@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 KAAC Governor's Cup - State Predictions</title>
+<style>
+:root {
+  --bg: #f5f7fb;
+  --panel: #ffffff;
+  --text: #192031;
+  --muted: #55607a;
+  --line: #d8dfec;
+  --blue: #1c5fd4;
+  --blue-soft: #e7f0ff;
+  --bar: #2463d0;
+  --badge-bg: #f3f4f6;
+  --badge-text: #4b5563;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.4;
+}
+.container { max-width: 1240px; margin: 0 auto; padding: 20px; }
+header { margin-bottom: 16px; }
+.header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+header h1 { font-size: 1.45rem; font-weight: 800; color: var(--blue); }
+header .subtitle { margin-top: 4px; color: var(--muted); font-size: 0.92rem; }
+.stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.stats span {
+  background: var(--blue-soft);
+  color: #264a8a;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.controls-row {
+  margin: 0 0 8px;
+}
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: #3d4a69;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+}
+.toggle input { accent-color: var(--blue); }
+.search-wrap { margin: 12px 0 14px; }
+.search-wrap input {
+  width: 100%;
+  max-width: 440px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.92rem;
+  background: var(--panel);
+}
+.search-wrap input:focus {
+  outline: none;
+  border-color: #93b4f3;
+  box-shadow: 0 0 0 3px rgba(28, 95, 212, 0.12);
+}
+.table-wrap {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+table { width: 100%; border-collapse: collapse; font-size: 0.84rem; min-width: 900px; }
+thead th {
+  background: #f2f5fb;
+  color: #34415f;
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 700;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+thead th:hover { background: #e7edf9; }
+thead th .arrow { font-size: 0.7rem; margin-left: 4px; color: #8a96b1; }
+thead th.sorted .arrow { color: var(--blue); }
+tbody tr { cursor: pointer; transition: background 0.12s; }
+tbody tr:nth-child(even) { background: #fbfcff; }
+tbody tr:hover { background: #eef4ff; }
+tbody tr.row-faded { opacity: 0.56; }
+tbody tr.row-faded:hover { opacity: 0.78; }
+tbody td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #edf1f9;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+td.rank-cell { font-weight: 800; color: var(--blue); text-align: center; }
+td.score-cell .ci {
+  margin-left: 5px;
+  font-size: 0.74rem;
+  color: #7783a0;
+}
+.score-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.score-viz {
+  position: relative;
+  width: 118px;
+  height: 12px;
+  flex: 0 0 auto;
+}
+.score-viz img {
+  display: block;
+  width: 118px;
+  height: 12px;
+}
+.badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--badge-bg);
+  color: var(--badge-text);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.muted { color: #8a94ab; }
+tr.detail-row { cursor: default; }
+tr.detail-row:hover { background: #f1f6ff; }
+tr.detail-row td { padding: 0; white-space: normal; }
+.detail-panel { background: #f1f6ff; padding: 16px 20px; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.detail-card {
+  background: #fff;
+  border: 1px solid #dce6f9;
+  border-radius: 9px;
+  padding: 13px 16px;
+}
+.detail-card h3 {
+  font-size: 0.92rem;
+  color: var(--blue);
+  margin-bottom: 8px;
+}
+.detail-card table { width: 100%; font-size: 0.82rem; }
+.detail-card td { border: none; padding: 3px 0; white-space: normal; }
+.detail-card td:first-child { color: #5f6980; width: 58%; }
+.detail-card td:last-child { font-weight: 650; }
+
+.hidden { display: none; }
+.loading { padding: 30px; text-align: center; color: #5a647b; }
+.error-msg { padding: 30px; text-align: center; color: #b42328; }
+
+@media (max-width: 920px) {
+  .container { padding: 14px; }
+  table { font-size: 0.8rem; min-width: 800px; }
+  thead th, tbody td { padding: 8px 9px; }
+}
+@media (max-width: 740px) {
+  .header-top { flex-direction: column; align-items: stretch; }
+  .search-wrap input { max-width: 100%; }
+  .detail-grid { grid-template-columns: 1fr; }
+  .col-geo { display: none; }
+  table { min-width: 700px; }
+  td.score-cell .ci { display: block; margin-left: 0; margin-top: 2px; }
+  .score-inline { display: block; }
+  .score-viz { display: block; margin-top: 4px; width: 118px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="header-top">
+      <div>
+        <h1>2026 KAAC Governor's Cup - State Predictions</h1>
+        <div class="subtitle">Based on district results (post_district_to_state)</div>
+      </div>
+    </div>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <div class="search-wrap">
+    <input type="text" id="search" placeholder="Search by team name..." autocomplete="off">
+  </div>
+  <div class="controls-row">
+    <label class="toggle">
+      <input type="checkbox" id="show-all">
+      <span>Show all teams (non-qualifiers faded)</span>
+    </label>
+  </div>
+
+  <div class="table-wrap">
+    <table id="main-table">
+      <thead>
+        <tr>
+          <th data-col="bayes_rank">Rank <span class="arrow"></span></th>
+          <th data-col="school_name">Team <span class="arrow"></span></th>
+          <th class="col-geo" data-col="district">District <span class="arrow"></span></th>
+          <th class="col-geo" data-col="region">Region <span class="arrow"></span></th>
+          <th data-col="bayes_score">Bayesian Score <span class="arrow"></span></th>
+          <th data-col="old_score">Beckett Score <span class="arrow"></span></th>
+          <th data-col="old_rank">Beckett Rank <span class="arrow"></span></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="loading" id="loading">Loading predictions...</div>
+  <div class="error-msg hidden" id="error"></div>
+</div>
+
+<script>
+(function() {
+  let data = null;
+  let currentSort = { col: 'bayes_rank', dir: 'asc' };
+  let expandedId = null;
+  let searchTerm = '';
+  let showAllTeams = false;
+  let scoreScale = { min: 0, max: 1 };
+  const BAR_CSS = 118;
+  const BAR_H_CSS = 12;
+  const DPR = window.devicePixelRatio || 1;
+  const BAR_D = Math.round(BAR_CSS * DPR);
+  const BAR_HD = Math.round(BAR_H_CSS * DPR);
+  const MK_D = Math.max(1, Math.round(2 * DPR));
+  const SEP_D = Math.max(1, Math.round(3 * DPR));
+  const _bgR = Math.round(6 * DPR);
+  const _ciY = Math.round(3 * DPR);
+  const _ciH = Math.round(6 * DPR);
+  const _tY = Math.round(1 * DPR);
+  const _tH = Math.round(10 * DPR);
+  const _cvs = document.createElement('canvas');
+  _cvs.width = BAR_D;
+  _cvs.height = BAR_HD;
+  const _ctx = _cvs.getContext('2d');
+
+  function drawBarImg(pPx, ciLeft, ciWidth, confColor, ticks) {
+    _ctx.clearRect(0, 0, BAR_D, BAR_HD);
+    _ctx.fillStyle = '#e2e8f6';
+    _ctx.beginPath();
+    _ctx.moveTo(_bgR, 0);
+    _ctx.lineTo(BAR_D - _bgR, 0);
+    _ctx.arcTo(BAR_D, 0, BAR_D, _bgR, _bgR);
+    _ctx.lineTo(BAR_D, BAR_HD - _bgR);
+    _ctx.arcTo(BAR_D, BAR_HD, BAR_D - _bgR, BAR_HD, _bgR);
+    _ctx.lineTo(_bgR, BAR_HD);
+    _ctx.arcTo(0, BAR_HD, 0, BAR_HD - _bgR, _bgR);
+    _ctx.lineTo(0, _bgR);
+    _ctx.arcTo(0, 0, _bgR, 0, _bgR);
+    _ctx.closePath();
+    _ctx.fill();
+    _ctx.globalAlpha = 0.55;
+    _ctx.fillStyle = confColor;
+    _ctx.fillRect(ciLeft, _ciY, ciWidth, _ciH);
+    _ctx.globalAlpha = 1.0;
+    _ctx.fillStyle = '#7b8fad';
+    for (const px of ticks) _ctx.fillRect(px, _tY, MK_D, _tH);
+    _ctx.fillStyle = '#4574b5';
+    _ctx.fillRect(pPx, 0, MK_D, BAR_HD);
+    return _cvs.toDataURL();
+  }
+
+  function hasBeckettData(team) {
+    return Number(team.old_formula.total_matches || 0) > 0;
+  }
+
+  function isRegionalQualifier(team) {
+    return team.regional_qualifier !== false;
+  }
+
+  function getValue(team, col) {
+    switch (col) {
+      case 'bayes_rank': return team.bayes.rank;
+      case 'school_name': return team.school_name.toLowerCase();
+      case 'district': return team.district || 0;
+      case 'region': return team.region || 0;
+      case 'bayes_score': return team.bayes.score;
+      case 'old_score': return hasBeckettData(team) ? team.old_formula.score : null;
+      case 'old_rank': return hasBeckettData(team) ? team.old_formula.rank : null;
+      default: return 0;
+    }
+  }
+
+  function compareValues(a, b, dir) {
+    const aNull = a === null || a === undefined || Number.isNaN(a);
+    const bNull = b === null || b === undefined || Number.isNaN(b);
+    if (aNull && bNull) return 0;
+    if (aNull) return 1;
+    if (bNull) return -1;
+    if (typeof a === 'string') return dir * a.localeCompare(b);
+    return dir * (a - b);
+  }
+
+  function ciColor(confidence) {
+    const t = Math.max(0, Math.min(1, Number(confidence) || 0));
+    const hue = Math.round(12 + 108 * t);
+    return `hsl(${hue}, 55%, 42%)`;
+  }
+
+  function scoreToPct(score) {
+    const min = scoreScale.min;
+    const max = scoreScale.max;
+    if (!(max > min)) return 50;
+    const pct = ((Number(score) - min) / (max - min)) * 100;
+    return Math.max(0, Math.min(100, pct));
+  }
+
+  function scoreToPx(score, markerWidth) {
+    const pct = scoreToPct(score);
+    const raw = Math.round((pct / 100) * (BAR_D - 1));
+    return Math.max(0, Math.min(BAR_D - markerWidth, raw));
+  }
+
+  function renderRow(team, faded) {
+    const oldData = hasBeckettData(team);
+    const oldScoreHtml = oldData
+      ? team.old_formula.score.toFixed(4)
+      : '<span class="badge">No data</span>';
+    const oldRankHtml = oldData
+      ? String(team.old_formula.rank)
+      : '<span class="muted">-</span>';
+    const confColor = ciColor(team.bayes.confidence);
+    const ciStyle = `color:${confColor};font-weight:650`;
+    const pPx = scoreToPx(team.bayes.score, MK_D);
+    const loPxRaw = scoreToPx(team.bayes.score_lo, MK_D);
+    const hiPxRaw = scoreToPx(team.bayes.score_hi, MK_D);
+    const ciLeft = Math.min(loPxRaw, hiPxRaw);
+    const ciRight = Math.max(loPxRaw, hiPxRaw);
+    const ciWidth = Math.min(BAR_D - ciLeft, Math.max(MK_D, (ciRight - ciLeft) + MK_D));
+
+    const tickPositions = [];
+    const maybeAddTick = (px) => {
+      if (Math.abs(px - pPx) < SEP_D) return;
+      for (const tpx of tickPositions) {
+        if (Math.abs(px - tpx) < SEP_D) return;
+      }
+      tickPositions.push(px);
+    };
+
+    if ((ciRight - ciLeft) <= MK_D) {
+      maybeAddTick(ciLeft);
+    } else {
+      maybeAddTick(loPxRaw);
+      maybeAddTick(hiPxRaw);
+    }
+
+    const barSrc = drawBarImg(pPx, ciLeft, ciWidth, confColor, tickPositions);
+    const rowClass = faded ? ' class="row-faded"' : '';
+
+    return `<tr data-sid="${team.school_id}"${rowClass}>
+      <td class="rank-cell" data-label="Rank">${team.bayes.rank}</td>
+      <td data-label="Team">${esc(team.school_name)}</td>
+      <td class="col-geo" data-label="District" style="text-align:center">${team.district ?? ''}</td>
+      <td class="col-geo" data-label="Region" style="text-align:center">${team.region ?? ''}</td>
+      <td class="score-cell" data-label="Bayesian Score"><span class="score-inline"><span>${team.bayes.score.toFixed(4)}<span class="ci" style="${ciStyle}" title="Confidence ${(team.bayes.confidence * 100).toFixed(1)}%">[${team.bayes.score_lo.toFixed(2)}, ${team.bayes.score_hi.toFixed(2)}]</span></span><span class="score-viz" title="Point score and confidence interval"><img src="${barSrc}" alt=""></span></span></td>
+      <td data-label="Beckett Score">${oldScoreHtml}</td>
+      <td data-label="Beckett Rank" style="text-align:center">${oldRankHtml}</td>
+    </tr>`;
+  }
+
+  function renderDetail(team, faded) {
+    const b = team.bayes;
+    const o = team.old_formula;
+    const oldData = hasBeckettData(team);
+    const record = oldData ? `${o.wins}-${o.total_matches - o.wins}` : 'No data';
+    const oldSummaryRows = oldData ? `
+      <tr><td>Beckett Score</td><td>${o.score.toFixed(4)}</td></tr>
+      <tr><td>Record</td><td>${record}</td></tr>
+      <tr><td>Win Rate</td><td>${(o.win_rate * 100).toFixed(1)}%</td></tr>
+      <tr><td>Avg Points/Match</td><td>${o.avg_points.toFixed(2)}</td></tr>
+      <tr><td>SOS (Strength of Schedule)</td><td>${o.sos.toFixed(4)}</td></tr>
+      <tr><td>SOV (Strength of Victory)</td><td>${o.sov.toFixed(4)}</td></tr>
+      <tr><td>Raw Score</td><td>${o.raw_score.toFixed(4)}</td></tr>
+      <tr><td>Adjusted SOS</td><td>${o.adj_sos.toFixed(4)}</td></tr>
+      <tr><td>Adjusted SOV</td><td>${o.adj_sov.toFixed(4)}</td></tr>
+    ` : `
+      <tr><td>Beckett Score</td><td><span class="badge">No data</span></td></tr>
+      <tr><td colspan="2" class="muted">No bracket matches were recorded for this team, so Beckett metrics are unavailable.</td></tr>
+    `;
+
+    const detailClass = faded ? 'detail-row row-faded' : 'detail-row';
+    return `<tr class="${detailClass}" data-detail="${team.school_id}"><td colspan="7">
+      <div class="detail-panel"><div class="detail-grid">
+        <div class="detail-card">
+          <h3>Bayesian Model</h3>
+          <table>
+            <tr><td>Score</td><td>${b.score.toFixed(4)}</td></tr>
+            <tr><td>Sigma (uncertainty)</td><td>${b.sigma.toFixed(4)}</td></tr>
+            <tr><td>90% Score Range</td><td>[${b.score_lo.toFixed(4)}, ${b.score_hi.toFixed(4)}]</td></tr>
+            <tr><td>90% Rank Range</td><td>[${Math.round(b.rank_lo)}, ${Math.round(b.rank_hi)}]</td></tr>
+            <tr><td>Confidence</td><td>${(b.confidence * 100).toFixed(1)}%</td></tr>
+            <tr><td colspan="2" style="padding-top:8px;font-weight:700;color:#1c5fd4">Component Breakdown</td></tr>
+            <tr><td>Prior</td><td>${b.contrib_prior.toFixed(4)} <span class="muted">- lineup + Beckett prior</span></td></tr>
+            <tr><td>QR fallback</td><td>${b.contrib_qr_team.toFixed(4)} <span class="muted">- QR pseudo-match signal</span></td></tr>
+            <tr><td>Graph (bracket signal)</td><td>${b.contrib_graph.toFixed(4)} <span class="muted">- win/loss network</span></td></tr>
+            <tr><td>Margin (scoring margins)</td><td>${b.contrib_margin.toFixed(4)} <span class="muted">- score intensity</span></td></tr>
+            <tr><td>Reliability</td><td>${b.reliability.toFixed(4)} <span class="muted">- data sufficiency</span></td></tr>
+          </table>
+        </div>
+        <div class="detail-card">
+          <h3>Beckett Score Model</h3>
+          <table>${oldSummaryRows}</table>
+        </div>
+      </div></div>
+    </td></tr>`;
+  }
+
+  function esc(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function render() {
+    if (!data) return;
+    let teams = data.teams.slice();
+
+    if (!showAllTeams) {
+      teams = teams.filter(isRegionalQualifier);
+    }
+
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      teams = teams.filter(t => t.school_name.toLowerCase().includes(q));
+    }
+
+    const col = currentSort.col;
+    const dir = currentSort.dir === 'asc' ? 1 : -1;
+    teams.sort((a, b) => compareValues(getValue(a, col), getValue(b, col), dir));
+
+    let html = '';
+    for (const team of teams) {
+      const faded = showAllTeams && !isRegionalQualifier(team);
+      html += renderRow(team, faded);
+      if (expandedId === team.school_id) html += renderDetail(team, faded);
+    }
+    document.getElementById('tbody').innerHTML = html;
+
+    document.querySelectorAll('#main-table thead th').forEach(th => {
+      const arrow = th.querySelector('.arrow');
+      if (th.dataset.col === currentSort.col) {
+        th.classList.add('sorted');
+        arrow.textContent = currentSort.dir === 'asc' ? '\u25B2' : '\u25BC';
+      } else {
+        th.classList.remove('sorted');
+        arrow.textContent = '';
+      }
+    });
+
+    const viewCountEl = document.getElementById('view-count');
+    if (viewCountEl) {
+      viewCountEl.textContent = `${teams.length} shown`;
+    }
+  }
+
+  document.querySelectorAll('#main-table thead th').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (currentSort.col === col) {
+        currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.col = col;
+        currentSort.dir = 'asc';
+      }
+      render();
+    });
+  });
+
+  document.getElementById('tbody').addEventListener('click', e => {
+    const tr = e.target.closest('tr');
+    if (!tr || tr.classList.contains('detail-row')) return;
+    const sid = Number(tr.dataset.sid);
+    if (Number.isNaN(sid)) return;
+    expandedId = expandedId === sid ? null : sid;
+    render();
+  });
+
+  document.getElementById('search').addEventListener('input', e => {
+    searchTerm = e.target.value;
+    expandedId = null;
+    render();
+  });
+
+  document.getElementById('show-all').addEventListener('change', e => {
+    showAllTeams = Boolean(e.target.checked);
+    expandedId = null;
+    render();
+  });
+
+  fetch('predictions.json')
+    .then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    })
+    .then(d => {
+      data = d;
+      const lows = d.teams.map(t => Number(t.bayes.score_lo) || 0);
+      const highs = d.teams.map(t => Number(t.bayes.score_hi) || 0);
+      scoreScale = { min: Math.min(...lows), max: Math.max(...highs) };
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('stats').innerHTML =
+        `<span>${d.school_count} teams</span>` +
+        `<span id="view-count"></span>` +
+        `<span>${d.regional_qualifier_count ?? 0} regional qualifiers</span>` +
+        `<span>${d.match_count} matches</span>` +
+        `<span>Generated ${new Date(d.generated_at).toLocaleDateString()}</span>`;
+      render();
+    })
+    .catch(err => {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = 'Failed to load predictions.json: ' + err.message;
+    });
+})();
+</script>
+</body>
+</html>
