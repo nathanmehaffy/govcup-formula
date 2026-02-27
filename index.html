@@ -193,8 +193,8 @@ tr.detail-row td { padding: 0; white-space: normal; }
   <header>
     <div class="header-top">
       <div>
-        <h1>2026 KAAC Governor's Cup - State Predictions</h1>
-        <div class="subtitle">Based on district results (post_district_to_state)</div>
+        <h1 id="page-title">KAAC Governor's Cup - State Predictions</h1>
+        <div class="subtitle" id="page-subtitle">Loading predictions...</div>
       </div>
     </div>
     <div class="stats" id="stats"></div>
@@ -206,7 +206,7 @@ tr.detail-row td { padding: 0; white-space: normal; }
   <div class="controls-row">
     <label class="toggle">
       <input type="checkbox" id="show-all">
-      <span>Show all teams (non-qualifiers faded)</span>
+      <span id="show-all-label">Show all teams (non-qualifiers faded)</span>
     </label>
   </div>
 
@@ -288,6 +288,14 @@ tr.detail-row td { padding: 0; white-space: normal; }
 
   function isRegionalQualifier(team) {
     return team.regional_qualifier !== false;
+  }
+
+  function isPostRegionScenario() {
+    return data && data.scenario === 'post_region_to_state';
+  }
+
+  function qualifierLabel() {
+    return isPostRegionScenario() ? 'state qualifiers' : 'regional qualifiers';
   }
 
   function getValue(team, col) {
@@ -519,11 +527,20 @@ tr.detail-row td { padding: 0; white-space: normal; }
       const lows = d.teams.map(t => Number(t.bayes.score_lo) || 0);
       const highs = d.teams.map(t => Number(t.bayes.score_hi) || 0);
       scoreScale = { min: Math.min(...lows), max: Math.max(...highs) };
+      const yearLabel = d.year ? `${d.year} KAAC Governor's Cup - State Predictions` : "KAAC Governor's Cup - State Predictions";
+      const postRegion = d.scenario === 'post_region_to_state';
+      document.getElementById('page-title').textContent = yearLabel;
+      document.getElementById('page-subtitle').textContent = postRegion
+        ? `Based on district + regional results (${d.scenario})`
+        : `Based on district results (${d.scenario || 'post_district_to_state'})`;
+      document.getElementById('show-all-label').textContent = postRegion
+        ? 'Show all teams (non-state-qualifiers faded)'
+        : 'Show all teams (non-regional-qualifiers faded)';
       document.getElementById('loading').classList.add('hidden');
       document.getElementById('stats').innerHTML =
         `<span>${d.school_count} teams</span>` +
         `<span id="view-count"></span>` +
-        `<span>${d.regional_qualifier_count ?? 0} regional qualifiers</span>` +
+        `<span>${d.regional_qualifier_count ?? 0} ${qualifierLabel()}</span>` +
         `<span>${d.match_count} matches</span>` +
         `<span>Generated ${new Date(d.generated_at).toLocaleDateString()}</span>`;
       render();
