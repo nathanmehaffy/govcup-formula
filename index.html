@@ -49,20 +49,61 @@ header .subtitle { margin-top: 4px; color: var(--muted); font-size: 0.92rem; }
   font-weight: 600;
 }
 .controls-row {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
 }
-.toggle {
+.scope-selector {
   display: inline-flex;
-  align-items: center;
+  align-items: stretch;
+  flex-wrap: wrap;
   gap: 8px;
-  font-size: 0.84rem;
-  color: #3d4a69;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 7px 10px;
+  border-radius: 10px;
+  padding: 6px;
 }
-.toggle input { accent-color: var(--blue); }
+.scope-option {
+  position: relative;
+}
+.scope-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.scope-option span {
+  display: block;
+  padding: 7px 11px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  color: #3d4a69;
+  font-size: 0.84rem;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+.scope-option span:hover {
+  background: #f2f6fd;
+}
+.scope-option input:checked + span {
+  background: #e6efff;
+  border-color: #b8cdf5;
+  color: #1e4fa2;
+  font-weight: 700;
+}
+.scope-option.scope-state input:checked + span {
+  background: #e6efff;
+  border-color: #b8cdf5;
+  color: #1e4fa2;
+}
+.scope-option.scope-region input:checked + span {
+  background: #e8f4ff;
+  border-color: #bddaf4;
+  color: #1d5c9a;
+}
+.scope-option.scope-district input:checked + span {
+  background: #ebf6ff;
+  border-color: #c3e0f4;
+  color: #245e8a;
+}
 .search-wrap { margin: 12px 0 14px; }
 .search-wrap input {
   width: 100%;
@@ -104,10 +145,13 @@ thead th:hover { background: #e7edf9; }
 thead th .arrow { font-size: 0.7rem; margin-left: 4px; color: #8a96b1; }
 thead th.sorted .arrow { color: var(--blue); }
 tbody tr { cursor: pointer; transition: background 0.12s; }
-tbody tr:nth-child(even) { background: #fbfcff; }
 tbody tr:hover { background: #eef4ff; }
-tbody tr.row-faded { opacity: 0.56; }
-tbody tr.row-faded:hover { opacity: 0.78; }
+tbody tr.row-tier-state { background: #ffffff; }
+tbody tr.row-tier-region { background: #e7f1ff; }
+tbody tr.row-tier-district { background: #e9f6ea; }
+tbody tr.row-tier-state:hover { background: #f0f4fb; }
+tbody tr.row-tier-region:hover { background: #dbe9ff; }
+tbody tr.row-tier-district:hover { background: #ddf0de; }
 tbody td {
   padding: 8px 12px;
   border-bottom: 1px solid #edf1f9;
@@ -150,6 +194,9 @@ tr.detail-row { cursor: default; }
 tr.detail-row:hover { background: #f1f6ff; }
 tr.detail-row td { padding: 0; white-space: normal; }
 .detail-panel { background: #f1f6ff; padding: 16px 20px; }
+tr.detail-row.row-tier-state .detail-panel { background: #f5f7fb; }
+tr.detail-row.row-tier-region .detail-panel { background: #eaf3ff; }
+tr.detail-row.row-tier-district .detail-panel { background: #edf8ee; }
 .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .detail-card {
   background: #fff;
@@ -204,10 +251,20 @@ tr.detail-row td { padding: 0; white-space: normal; }
     <input type="text" id="search" placeholder="Search by team name..." autocomplete="off">
   </div>
   <div class="controls-row">
-    <label class="toggle">
-      <input type="checkbox" id="show-all">
-      <span id="show-all-label">Show all teams (non-qualifiers faded)</span>
-    </label>
+    <div class="scope-selector" role="radiogroup" aria-label="Team scope">
+      <label class="scope-option scope-state">
+        <input type="radio" name="team-scope" value="state" checked>
+        <span>State-advancing teams</span>
+      </label>
+      <label class="scope-option scope-region">
+        <input type="radio" name="team-scope" value="region">
+        <span>Teams at Regionals</span>
+      </label>
+      <label class="scope-option scope-district">
+        <input type="radio" name="team-scope" value="district">
+        <span>Teams at District</span>
+      </label>
+    </div>
   </div>
 
   <div class="table-wrap">
@@ -237,7 +294,7 @@ tr.detail-row td { padding: 0; white-space: normal; }
   let currentSort = { col: 'bayes_rank', dir: 'asc' };
   let expandedId = null;
   let searchTerm = '';
-  let showAllTeams = false;
+  let teamScope = 'state';
   let scoreScale = { min: 0, max: 1 };
   const BAR_CSS = 118;
   const BAR_H_CSS = 12;
@@ -286,16 +343,34 @@ tr.detail-row td { padding: 0; white-space: normal; }
     return Number(team.old_formula.total_matches || 0) > 0;
   }
 
-  function isRegionalQualifier(team) {
-    return team.regional_qualifier !== false;
-  }
-
   function isPostRegionScenario() {
     return data && data.scenario === 'post_region_to_state';
   }
 
-  function qualifierLabel() {
-    return isPostRegionScenario() ? 'state qualifiers' : 'regional qualifiers';
+  function teamTier(team) {
+    if (team.tier_reached === 'state' || team.tier_reached === 'region' || team.tier_reached === 'district') {
+      return team.tier_reached;
+    }
+    if (team.state_advancing === true) return 'state';
+    if (team.regional_participant === true) return 'region';
+    if (team.regional_qualifier === true) {
+      return isPostRegionScenario() ? 'state' : 'region';
+    }
+    return 'region';
+  }
+
+  function inScope(team, scope) {
+    const tier = teamTier(team);
+    if (scope === 'state') return tier === 'state';
+    if (scope === 'region') return tier === 'state' || tier === 'region';
+    return tier === 'state' || tier === 'region' || tier === 'district';
+  }
+
+  function tierClass(tier) {
+    if (tier === 'state') return 'row-tier-state';
+    if (tier === 'region') return 'row-tier-region';
+    if (tier === 'district') return 'row-tier-district';
+    return '';
   }
 
   function getValue(team, col) {
@@ -341,7 +416,7 @@ tr.detail-row td { padding: 0; white-space: normal; }
     return Math.max(0, Math.min(BAR_D - markerWidth, raw));
   }
 
-  function renderRow(team, faded) {
+  function renderRow(team, tier) {
     const oldData = hasBeckettData(team);
     const oldScoreHtml = oldData
       ? team.old_formula.score.toFixed(4)
@@ -375,7 +450,8 @@ tr.detail-row td { padding: 0; white-space: normal; }
     }
 
     const barSrc = drawBarImg(pPx, ciLeft, ciWidth, confColor, tickPositions);
-    const rowClass = faded ? ' class="row-faded"' : '';
+    const rowClassName = tierClass(tier);
+    const rowClass = rowClassName ? ` class="${rowClassName}"` : '';
 
     return `<tr data-sid="${team.school_id}"${rowClass}>
       <td class="rank-cell" data-label="Rank">${team.bayes.rank}</td>
@@ -388,7 +464,7 @@ tr.detail-row td { padding: 0; white-space: normal; }
     </tr>`;
   }
 
-  function renderDetail(team, faded) {
+  function renderDetail(team, tier) {
     const b = team.bayes;
     const o = team.old_formula;
     const oldData = hasBeckettData(team);
@@ -408,7 +484,8 @@ tr.detail-row td { padding: 0; white-space: normal; }
       <tr><td colspan="2" class="muted">No bracket matches were recorded for this team, so Beckett metrics are unavailable.</td></tr>
     `;
 
-    const detailClass = faded ? 'detail-row row-faded' : 'detail-row';
+    const rowClassName = tierClass(tier);
+    const detailClass = rowClassName ? `detail-row ${rowClassName}` : 'detail-row';
     return `<tr class="${detailClass}" data-detail="${team.school_id}"><td colspan="7">
       <div class="detail-panel"><div class="detail-grid">
         <div class="detail-card">
@@ -445,9 +522,7 @@ tr.detail-row td { padding: 0; white-space: normal; }
     if (!data) return;
     let teams = data.teams.slice();
 
-    if (!showAllTeams) {
-      teams = teams.filter(isRegionalQualifier);
-    }
+    teams = teams.filter(t => inScope(t, teamScope));
 
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
@@ -460,9 +535,9 @@ tr.detail-row td { padding: 0; white-space: normal; }
 
     let html = '';
     for (const team of teams) {
-      const faded = showAllTeams && !isRegionalQualifier(team);
-      html += renderRow(team, faded);
-      if (expandedId === team.school_id) html += renderDetail(team, faded);
+      const tier = teamTier(team);
+      html += renderRow(team, tier);
+      if (expandedId === team.school_id) html += renderDetail(team, tier);
     }
     document.getElementById('tbody').innerHTML = html;
 
@@ -511,10 +586,13 @@ tr.detail-row td { padding: 0; white-space: normal; }
     render();
   });
 
-  document.getElementById('show-all').addEventListener('change', e => {
-    showAllTeams = Boolean(e.target.checked);
-    expandedId = null;
-    render();
+  document.querySelectorAll('input[name="team-scope"]').forEach(input => {
+    input.addEventListener('change', e => {
+      if (!e.target.checked) return;
+      teamScope = e.target.value;
+      expandedId = null;
+      render();
+    });
   });
 
   fetch('predictions.json')
@@ -528,19 +606,30 @@ tr.detail-row td { padding: 0; white-space: normal; }
       const highs = d.teams.map(t => Number(t.bayes.score_hi) || 0);
       scoreScale = { min: Math.min(...lows), max: Math.max(...highs) };
       const yearLabel = d.year ? `${d.year} KAAC Governor's Cup - State Predictions` : "KAAC Governor's Cup - State Predictions";
-      const postRegion = d.scenario === 'post_region_to_state';
       document.getElementById('page-title').textContent = yearLabel;
-      document.getElementById('page-subtitle').textContent = postRegion
+      document.getElementById('page-subtitle').textContent = isPostRegionScenario()
         ? `Based on district + regional results (${d.scenario})`
         : `Based on district results (${d.scenario || 'post_district_to_state'})`;
-      document.getElementById('show-all-label').textContent = postRegion
-        ? 'Show all teams (non-state-qualifiers faded)'
-        : 'Show all teams (non-regional-qualifiers faded)';
+
+      const stateCount = Number(d.state_advancing_count ?? d.regional_qualifier_count ?? 0);
+      const regionalCount = Number(d.regional_team_count ?? d.school_count ?? 0);
+      if (stateCount > 0) {
+        teamScope = 'state';
+      } else if (regionalCount > 0) {
+        teamScope = 'region';
+      } else {
+        teamScope = 'district';
+      }
+      const selectedScope = document.querySelector(`input[name="team-scope"][value="${teamScope}"]`);
+      if (selectedScope) selectedScope.checked = true;
+
       document.getElementById('loading').classList.add('hidden');
       document.getElementById('stats').innerHTML =
         `<span>${d.school_count} teams</span>` +
         `<span id="view-count"></span>` +
-        `<span>${d.regional_qualifier_count ?? 0} ${qualifierLabel()}</span>` +
+        `<span>${stateCount} state-advancing</span>` +
+        `<span>${regionalCount} at regionals</span>` +
+        `<span>${Number(d.district_team_count ?? d.school_count ?? 0)} at district</span>` +
         `<span>${d.match_count} matches</span>` +
         `<span>Generated ${new Date(d.generated_at).toLocaleDateString()}</span>`;
       render();
